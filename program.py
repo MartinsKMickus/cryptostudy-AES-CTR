@@ -30,11 +30,10 @@ def invMixColumns(state): {
     print("Nav implementēts")
 }
     
-# trūkst papildus parametrs(state, word)
-def addRoundKey(state): {
-    # TODO: Implementēt
-    print("Nav implementēts")
-}
+def addRoundKey(state, roundKey):
+    for i in range(4):
+        for j in range(4):
+            state[i][j] ^= roundKey[i][j]
     
 
 def encryptAESCTR(fileBits, key, initVector, nonce): {
