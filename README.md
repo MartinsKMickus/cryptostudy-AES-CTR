@@ -11,11 +11,10 @@ Nošifrēt failu un atšifrēt nošifrēto failu, izmantojot šādu algoritmu:
 <b>Šifrēšana:</b>
 - Norāde uz šifrējamo failu.
 - Šifrēšanas atslēga.
-- Inicializācijas vektors kā 32 heksadecimālie simboli.
 - Nonce 16 bitus gara jeb 4 heksadecimālie simboli.
 - Darbība/Poga "šifrēt".
 Rezultātā izveido failu, kurā 1.bloks ir 128 (AES) bitu
-inicializācijas vektors???, tālāk seko nošifrētais failsNorādi uz nošifrēto failu parāda atsevšķā laukā.
+inicializācijas vektors, tālāk seko nošifrētais fails.
 
 <b>Atšifrēšana:</b>
 - Norāde uz atšifrējamo failu.
