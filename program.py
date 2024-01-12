@@ -11,15 +11,14 @@ def invSubBytes(state): {
     print("Nav implementēts")
 }
     
-def shiftRows(state): {
-    # TODO: Implementēt
-    print("Nav implementēts")
-}
+def shiftRows(state): 
+    for i, row in enumerate(state):
+            state[i] = row[i:] + row[:i]
+
     
-def invShiftRows(state): {
-    # TODO: Implementēt
-    print("Nav implementēts")
-}
+def invShiftRows(state):
+    for i, row in enumerate(state):
+        state[i] = row[-i:] + row[:-i]
     
 def mixColumns(state): {
     # TODO: Implementēt
