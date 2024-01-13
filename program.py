@@ -66,6 +66,7 @@ def invShiftRows(state):
         state[i] = row[-i:] + row[:-i]
     
 def mixColumns(state):
+    # matrica, ar kuru reizina
     mix_matrix = [
     [0x2, 0x3, 0x1, 0x1],
     [0x1, 0x2, 0x3, 0x1],
@@ -75,25 +76,29 @@ def mixColumns(state):
     state = np.array(state)
     mix_matrix = np.array(mix_matrix)
     mixed_state = np.zeros_like(state, dtype=int)
-
+    
+    # funkcija, kas paņem state matricas rindu un Mix matricas kolonnu, izsauc reizināšanu
+    # un katram reizinājumam izpilda XOR
     def gf_add_mul(a, b):
         p = 0
         for i in range(4):
             p ^= gf_mul(a[i], b[i])
         return p
-
+    
+    # reizināšanas funkcija
     def gf_mul(a, b):
         p = 0
         for _ in range(4):
             if b & 1:
-                p ^= a
-            hi_bit_set = a & 0x8
-            a <<= 1
+                p ^= a # ja b ir 1, rezultatam p izpilda XOR ar a
+            hi_bit_set = a & 0x8 # pārbaudīšanai, vai a ir jāizpilda XOR ar 0x3 
+            a <<= 1 # ar logical shift left reizina ar 2
             if hi_bit_set:
-                a ^= 0x3
-            b >>= 1
-        return p & 0xF
+                a ^= 0x3 #reizinātajam izpilda XOR
+            b >>= 1 # pēc darbībām b dala ar 2
+        return p & 0xF # & nodrošina rezultātu 4 bitu robežās
     
+    #iziet cauri katrai kolonnai un rindai 
     for col in range(4):
         for row in range(4):
             mixed_state[row][col] = gf_add_mul(state[:, col], mix_matrix[row, :])
@@ -106,7 +111,7 @@ def invMixColumns(state):
     [0x9, 0xE, 0xB, 0xD],
     [0xD, 0x9, 0xE, 0xB],
     [0xB, 0xD, 0x9, 0xE]
-    ]
+    ] # inversajam MixColumns vienkārši izmanto citu matricu, ar kuru reizina
     state = np.array(state)
     inv_mix_matrix = np.array(inv_mix_matrix)
     mixed_state = np.zeros_like(state, dtype=int)
@@ -114,7 +119,7 @@ def invMixColumns(state):
     def gf_add_mul(a, b):
         p = 0
         for i in range(4):
-            p ^= gf_mul(a[i], b[i]) # jo 
+            p ^= gf_mul(a[i], b[i])
         return p
 
     def gf_mul(a, b):
