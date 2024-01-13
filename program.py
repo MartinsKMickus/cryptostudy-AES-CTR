@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 # TODO: Uztaisīt argument parser (pogas encrypt/derypt)
@@ -25,7 +26,7 @@ s_box = [
     [0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16]
 ]
 
-inv_s_box = [
+""" inv_s_box = [
     [0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB],
     [0x7C, 0xE3, 0x39, 0x82, 0x9B, 0x2F, 0xFF, 0x87, 0x34, 0x8E, 0x43, 0x44, 0xC4, 0xDE, 0xE9, 0xCB],
     [0x54, 0x7B, 0x94, 0x32, 0xA6, 0xC2, 0x23, 0x3D, 0xEE, 0x4C, 0x95, 0x0B, 0x42, 0xFA, 0xC3, 0x4E],
@@ -42,7 +43,7 @@ inv_s_box = [
     [0x60, 0x51, 0x7F, 0xA9, 0x19, 0xB5, 0x4A, 0x0D, 0x2D, 0xE5, 0x7A, 0x9F, 0x93, 0xC9, 0x9C, 0xEF],
     [0xA0, 0xE0, 0x3B, 0x4D, 0xAE, 0x2A, 0xF5, 0xB0, 0xC8, 0xEB, 0xBB, 0x3C, 0x83, 0x53, 0x99, 0x61],
     [0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D]
-]
+] """
 
 def subBytes(state):
     for i in range(4):
@@ -52,22 +53,22 @@ def subBytes(state):
 
             state[i][j] = s_box[x][y]
     
-def invSubBytes(state):
+""" def invSubBytes(state):
     for i in range(4):
         for j in range(4):
             x = (state[i][j] >> 4) & 0xF
             y = state[i][j] & 0xF
 
-            state[i][j] = inv_s_box[x][y]
+            state[i][j] = inv_s_box[x][y] """
     
 def shiftRows(state): 
     for i, row in enumerate(state):
             state[i] = row[i:] + row[:i]
 
     
-def invShiftRows(state):
+""" def invShiftRows(state):
     for i, row in enumerate(state):
-        state[i] = row[-i:] + row[:-i]
+        state[i] = row[-i:] + row[:-i] """
     
 def mixColumns(state):
     # matrica, ar kuru reizina
@@ -77,6 +78,7 @@ def mixColumns(state):
     [0x1, 0x1, 0x2, 0x3],
     [0x3, 0x1, 0x1, 0x2]
     ]
+    # TODO: Noņemt NumPy bibliotēku
     state = np.array(state)
     mix_matrix = np.array(mix_matrix)
     mixed_state = np.zeros_like(state, dtype=int)
@@ -107,42 +109,43 @@ def mixColumns(state):
         for row in range(4):
             mixed_state[row][col] = gf_add_mul(state[:, col], mix_matrix[row, :])
     
-    return mixed_state
+    # print(mixed_state.tolist())
+    return mixed_state.tolist()
 
-def invMixColumns(state):
-    inv_mix_matrix = [
-    [0xE, 0xB, 0xD, 0x9],
-    [0x9, 0xE, 0xB, 0xD],
-    [0xD, 0x9, 0xE, 0xB],
-    [0xB, 0xD, 0x9, 0xE]
-    ] # inversajam MixColumns vienkārši izmanto citu matricu, ar kuru reizina
-    state = np.array(state)
-    inv_mix_matrix = np.array(inv_mix_matrix)
-    mixed_state = np.zeros_like(state, dtype=int)
+# def invMixColumns(state):
+#     inv_mix_matrix = [
+#     [0xE, 0xB, 0xD, 0x9],
+#     [0x9, 0xE, 0xB, 0xD],
+#     [0xD, 0x9, 0xE, 0xB],
+#     [0xB, 0xD, 0x9, 0xE]
+#     ] # inversajam MixColumns vienkārši izmanto citu matricu, ar kuru reizina
+#     state = np.array(state)
+#     inv_mix_matrix = np.array(inv_mix_matrix)
+#     mixed_state = np.zeros_like(state, dtype=int)
 
-    def gf_add_mul(a, b):
-        p = 0
-        for i in range(4):
-            p ^= gf_mul(a[i], b[i])
-        return p
+#     def gf_add_mul(a, b):
+#         p = 0
+#         for i in range(4):
+#             p ^= gf_mul(a[i], b[i])
+#         return p
 
-    def gf_mul(a, b):
-        p = 0
-        for _ in range(4):
-            if b & 1:
-                p ^= a
-            hi_bit_set = a & 0x8
-            a <<= 1
-            if hi_bit_set:
-                a ^= 0x3
-            b >>= 1
-        return p & 0xF
+#     def gf_mul(a, b):
+#         p = 0
+#         for _ in range(4):
+#             if b & 1:
+#                 p ^= a
+#             hi_bit_set = a & 0x8
+#             a <<= 1
+#             if hi_bit_set:
+#                 a ^= 0x3
+#             b >>= 1
+#         return p & 0xF
     
-    for col in range(4):
-        for row in range(4):
-            mixed_state[row][col] = gf_add_mul(state[:, col], inv_mix_matrix[row, :])
+#     for col in range(4):
+#         for row in range(4):
+#             mixed_state[row][col] = gf_add_mul(state[:, col], inv_mix_matrix[row, :])
     
-    return mixed_state
+#     return mixed_state
     
 def addRoundKey(state, roundKey):
     for i in range(4):
@@ -158,16 +161,19 @@ def subWord(word):
     for i in range(4):
         word[i] = s_box[word[i] >> 4][word[i] & 0x0F]
 
-def generate_rcon(nr):
-    rcon_values = [0] * (nr + 1)
-    rcon_values[0] = 1
+def generate_rcon(round_number):
+    rcon = 1
+    for i in range(1, round_number + 1):
+        rcon = (rcon << 1) ^ (0x11b if (rcon & 0x80) else 0)
+    return rcon.to_bytes(4, byteorder='big') # TODO: DEBUG IF LITTLE OR BIG
 
-    for i in range(1, nr + 1):
-        rcon_values[i] = (rcon_values[i - 1] << 1) ^ (0x11b if (rcon_values[i - 1] & 0x80) else 0)
+def xorBinaryList(list1, list2):
+    result = []
+    for i in range(len(list1)):
+        result.append(list1[i] ^ list2[i])
+    return result
 
-    return rcon_values
-
-def keyExpansion(key: bytes, expandedW: bytes):
+def keyExpansion(key: bytes):
     i = 0
     # Apraksts 128-bitu gadījumā
     # key būs izmērā 128-biti jeb 32-baiti
@@ -175,44 +181,96 @@ def keyExpansion(key: bytes, expandedW: bytes):
     # SVARĪGI VIENA ITERĀCIJA IR 1Xi vai 4Xi (Simulē word garumu)
     # expandedW = 1 Iterācijai jābūt 32-bitiem (4-baitiem) (4xi)
     # key - 1 Iterācija 8-biti (1-baits) (1xi)
+    expandedK = []
+    for i in range(NB*(NR+1)*4):
+        expandedK.append(0x00)
+
     while(i<NK):
         # Simulēt word = 4 baitus
-        expandedW[4*i] = key[4*i]
-        expandedW[4*i+1] = key[4*i+1]
-        expandedW[4*i+2] = key[4*i+2]
-        expandedW[4*i+3] = key[4*i+3]
+        expandedK[4*i] = key[4*i]
+        expandedK[4*i+1] = key[4*i+1]
+        expandedK[4*i+2] = key[4*i+2]
+        expandedK[4*i+3] = key[4*i+3]
+        # expandedK.append(key[4*i])
+        # expandedK.append(key[4*i+1])
+        # expandedK.append(key[4*i+2])
+        # expandedK.append(key[4*i+3])
         i += 1
     
     i = NK
-    temp = []
+    temp = [0x00, 0x00, 0x00, 0x00]
     while (i < NB * (NR+1)):
         # Simulēt word = 4 baitus
-        temp[0] = expandedW[(i-1)*4]
-        temp[1] = expandedW[(i-1)*4+1]
-        temp[2] = expandedW[(i-1)*4+2]
-        temp[3] = expandedW[(i-1)*4+3]
+        temp[0] = expandedK[(i-1)*4]
+        temp[1] = expandedK[(i-1)*4+1]
+        temp[2] = expandedK[(i-1)*4+2]
+        temp[3] = expandedK[(i-1)*4+3]
         if (i % NK == 0):
             # temp = SubWord(RotWord(temp)) xor Rcon[i/Nk]
             rotWordInplace(temp)
             subWord(temp)
-            temp = temp ^ generate_rcon(i/NK)
+            # print(temp)
+            # print(generate_rcon(int(i/NK)))
+            temp = xorBinaryList(temp, generate_rcon(int(i/NK)))
         elif (NK > 6) and (i % NK == 4):
             subWord(temp)
         # Simulēt word = 4 baitus
-        expandedW[4*i] = expandedW[(i-NK)*4] ^ temp[0]
-        expandedW[4*i+1] = expandedW[(i-NK)*4+1] ^ temp[1]
-        expandedW[4*i+2] = expandedW[(i-NK)*4+2] ^ temp[2]
-        expandedW[4*i+3] = expandedW[(i-NK)*4+3] ^ temp[3]
+        expandedK[4*i] = expandedK[(i-NK)*4] ^ temp[0]
+        expandedK[4*i+1] = expandedK[(i-NK)*4+1] ^ temp[1]
+        expandedK[4*i+2] = expandedK[(i-NK)*4+2] ^ temp[2]
+        expandedK[4*i+3] = expandedK[(i-NK)*4+3] ^ temp[3]
         i += 1
+    return expandedK
 
-
+def cipherAES(input: bytes, expandedK: bytes):
+    output = []
+    # TODO: HARDCODED FOR 128-bit mode
+    state = [
+        [input[0], input[1], input[2], input[3]],
+        [input[4], input[5], input[6], input[7]],
+        [input[8], input[9], input[10], input[11]],
+        [input[12], input[13], input[14], input[15]]
+    ]
+    # TODO: HARDCODED FOR 128-bit mode
+    roundKey = [
+        [expandedK[0], expandedK[1], expandedK[2], expandedK[3]],
+        [expandedK[4], expandedK[5], expandedK[6], expandedK[3]],
+        [expandedK[8], expandedK[9], expandedK[10], expandedK[11]],
+        [expandedK[12], expandedK[13], expandedK[14], expandedK[15]]
+    ]
+    addRoundKey(state, roundKey)
+    for round in range(NR):
+        subBytes(state)
+        shiftRows(state)
+        state = mixColumns(state)
+        # TODO: HARDCODED FOR 128-bit mode
+        expKIndex = round*NB*4
+        roundKey = [
+            [expandedK[expKIndex], expandedK[expKIndex+1], expandedK[expKIndex+2], expandedK[expKIndex+3]],
+            [expandedK[expKIndex+4], expandedK[expKIndex+5], expandedK[expKIndex+6], expandedK[expKIndex+3]],
+            [expandedK[expKIndex+8], expandedK[expKIndex+9], expandedK[expKIndex+10], expandedK[expKIndex+11]],
+            [expandedK[expKIndex+12], expandedK[expKIndex+13], expandedK[expKIndex+14], expandedK[expKIndex+15]]
+        ]
+        addRoundKey(state, roundKey)
+    subBytes(state)
+    shiftRows(state)
+    # TODO: HARDCODED FOR 128-bit mode
+    expKIndex = NR*NB
+    roundKey = [
+            [expandedK[expKIndex], expandedK[expKIndex+1], expandedK[expKIndex+2], expandedK[expKIndex+3]],
+            [expandedK[expKIndex+4], expandedK[expKIndex+5], expandedK[expKIndex+6], expandedK[expKIndex+3]],
+            [expandedK[expKIndex+8], expandedK[expKIndex+9], expandedK[expKIndex+10], expandedK[expKIndex+11]],
+            [expandedK[expKIndex+12], expandedK[expKIndex+13], expandedK[expKIndex+14], expandedK[expKIndex+15]]
+        ]
+    addRoundKey(state, roundKey)
+    return state
 
 # Iegūs 128-bitu ieeju AESam
 def generateAESInput(nonce, counter):
     # Pabīdīs tā, lai pirmie 4 hex būtu nonce, pārējais counter
     combined_value = (nonce << 112) | counter
     # Convert the combined value to bytes (16 bytes for 128 bits) AIKOMENTĒTAIS
-    return combined_value #.to_bytes(16, byteorder='big')
+    return combined_value.to_bytes(16, byteorder='big') # TODO: DEBUG IF LITTLE OR BIG
 
 def encryptAESCTR(file_name, key: str, nonce: str):
     # Pārveido no string uz hex nonce
@@ -222,16 +280,58 @@ def encryptAESCTR(file_name, key: str, nonce: str):
     nonce_int = int.from_bytes(nonce_bytes, byteorder='big')
     # Counter sākas ar 0
     counter = 0
-    init_vector = generateAESInput(nonce_int, counter)
-    # TODO: Iegūt paplašināto atslēgu
-    with open('cipheredCTRAES.bin', 'wb') as ciphered_file:
+    expandedK = keyExpansion(key_bytes)
+    file_name_without_extension = os.path.splitext(os.path.basename(file_name))[0]
+    if not os.path.exists('encrypted'):
+        os.makedirs('encrypted')
+    with open(f'encrypted/{file_name_without_extension}', 'wb') as ciphered_file:
         # Šifrētais fails sāksies ar init vektoru
-        ciphered_file.write(init_vector.to_bytes(16))
+        init_vector = generateAESInput(nonce_int, counter)
+        ciphered_file.write(init_vector)
         with open(file_name, 'br') as input_file:
             while True:
                 input_chunk = input_file.read(16)
                 if not input_chunk:
                     break
-                # TODO: Implementēt AES izsaukumu
-                # TODO: Beigās XORot datus ar iegūto
-    print("Nav implementēts")
+                init_vector = generateAESInput(nonce_int, counter)
+                block_res = cipherAES(init_vector, expandedK)
+                # print(input_chunk)
+                # print(block_res)
+                result = bytes(xorBinaryList(input_chunk,block_res[0] + block_res[1] + block_res[2] + block_res[3]))
+                # print(result)
+                ciphered_file.write(result)
+                counter += 1
+
+def decryptAESCTR(file_name, key: str):
+    # Pārveido no string uz hex nonce
+    # nonce_bytes = bytes.fromhex(nonce)
+    key_bytes = bytes.fromhex(key)
+    # Counter sākas ar 0
+    counter = 0
+    expandedK = keyExpansion(key_bytes)
+    with open(file_name, 'br') as ciphered_file:
+        # Šifrētais fails sāksies ar init vektoru
+        nonce = ciphered_file.read(16)[:2]
+        print(nonce)
+        nonce_int = int.from_bytes(nonce, byteorder='big')
+        file_name_without_extension = os.path.splitext(os.path.basename(file_name))[0]
+        if not os.path.exists('decrypted'):
+            os.makedirs('decrypted')
+        with open(f'decrypted/{file_name_without_extension}', 'bw') as output_file:
+            while True:
+                init_vector = generateAESInput(nonce_int, counter)
+                input_chunk = ciphered_file.read(16)
+                if not input_chunk:
+                    break
+                block_res = cipherAES(init_vector, expandedK)
+                # print(input_chunk)
+                # print(block_res)
+                result = bytes(xorBinaryList(input_chunk,block_res[0] + block_res[1] + block_res[2] + block_res[3]))
+                # print(result)
+                output_file.write(result)
+                counter += 1
+
+
+# Piemēri:
+# encryptAESCTR('MyFyle.docx', '0123456789ABCDEF0123456789ABCDEF', 'ABCD')
+# decryptAESCTR('encrypted/MyFile', '0123456789ABCDEF0123456789ABCDEF')

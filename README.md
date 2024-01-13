@@ -23,5 +23,5 @@ inicializācijas vektors, tālāk seko nošifrētais fails.
 
 ## Palaišana
 Programmu vajadzētu palaist ar iespēju pie izsaukšanas norādīt parametrus:
-- Šifrēt: `python program.py encrypt 'file' KEY INIT_VECTOR NONCE`
+- Šifrēt: `python program.py encrypt 'file' KEY NONCE`
 - Atšifrēt `python program.py decrypt 'file' KEY`
