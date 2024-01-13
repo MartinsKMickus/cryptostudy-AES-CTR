@@ -92,7 +92,11 @@ def encryptAESCTR(fileBits, key, nonce: str):
     nonce_int = int.from_bytes(nonce_bytes, byteorder='big')
     # Counter sākas ar 0
     counter = 0
-    generateAESInput(nonce_int, counter)
+    init_vector = generateAESInput(nonce_int, counter)
+    with open('ciphered.bin', 'w') as file:
+        # Fails sāksies ar init vektoru
+        file.write(init_vector)
+
 
     # TODO: Iterēt caur faila bitiem
     # TODO: Beigās XORot datus ar iegūto
