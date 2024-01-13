@@ -2,6 +2,10 @@ import numpy as np
 
 # TODO: Uztaisīt argument parser (pogas encrypt/derypt)
 
+NK = 4
+NB = 4
+NR = 10
+
 s_box = [
     [0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76],
     [0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0],
@@ -145,6 +149,64 @@ def addRoundKey(state, roundKey):
         for j in range(4):
             state[i][j] ^= roundKey[i][j]
 
+def rotWordInplace(word):
+    # Assume 'word' is a 32-bit word represented as a list of 4 bytes
+    # Rotate the word to the left by 1 position
+    word[:] = word[1:] + [word[0]]
+
+def subWord(word):
+    for i in range(4):
+        word[i] = s_box[word[i] >> 4][word[i] & 0x0F]
+
+def generate_rcon(nr):
+    rcon_values = [0] * (nr + 1)
+    rcon_values[0] = 1
+
+    for i in range(1, nr + 1):
+        rcon_values[i] = (rcon_values[i - 1] << 1) ^ (0x11b if (rcon_values[i - 1] & 0x80) else 0)
+
+    return rcon_values
+
+def keyExpansion(key: bytes, expandedW: bytes):
+    i = 0
+    # Apraksts 128-bitu gadījumā
+    # key būs izmērā 128-biti jeb 32-baiti
+    # expandedW būs izmērā 44 * 32-biti(4baiti) = 352baiti
+    # SVARĪGI VIENA ITERĀCIJA IR 1Xi vai 4Xi (Simulē word garumu)
+    # expandedW = 1 Iterācijai jābūt 32-bitiem (4-baitiem) (4xi)
+    # key - 1 Iterācija 8-biti (1-baits) (1xi)
+    while(i<NK):
+        # Simulēt word = 4 baitus
+        expandedW[4*i] = key[4*i]
+        expandedW[4*i+1] = key[4*i+1]
+        expandedW[4*i+2] = key[4*i+2]
+        expandedW[4*i+3] = key[4*i+3]
+        i += 1
+    
+    i = NK
+    temp = []
+    while (i < NB * (NR+1)):
+        # Simulēt word = 4 baitus
+        temp[0] = expandedW[(i-1)*4]
+        temp[1] = expandedW[(i-1)*4+1]
+        temp[2] = expandedW[(i-1)*4+2]
+        temp[3] = expandedW[(i-1)*4+3]
+        if (i % NK == 0):
+            # temp = SubWord(RotWord(temp)) xor Rcon[i/Nk]
+            rotWordInplace(temp)
+            subWord(temp)
+            temp = temp ^ generate_rcon(i/NK)
+        elif (NK > 6) and (i % NK == 4):
+            subWord(temp)
+        # Simulēt word = 4 baitus
+        expandedW[4*i] = expandedW[(i-NK)*4] ^ temp[0]
+        expandedW[4*i+1] = expandedW[(i-NK)*4+1] ^ temp[1]
+        expandedW[4*i+2] = expandedW[(i-NK)*4+2] ^ temp[2]
+        expandedW[4*i+3] = expandedW[(i-NK)*4+3] ^ temp[3]
+        i += 1
+
+
+
 # Iegūs 128-bitu ieeju AESam
 def generateAESInput(nonce, counter):
     # Pabīdīs tā, lai pirmie 4 hex būtu nonce, pārējais counter
@@ -152,19 +214,24 @@ def generateAESInput(nonce, counter):
     # Convert the combined value to bytes (16 bytes for 128 bits) AIKOMENTĒTAIS
     return combined_value #.to_bytes(16, byteorder='big')
 
-def encryptAESCTR(fileBits, key, nonce: str):
+def encryptAESCTR(file_name, key: str, nonce: str):
     # Pārveido no string uz hex nonce
     nonce_bytes = bytes.fromhex(nonce)
+    key_bytes = bytes.fromhex(key)
     # Pārveido hex uz parastu skaitli
     nonce_int = int.from_bytes(nonce_bytes, byteorder='big')
     # Counter sākas ar 0
     counter = 0
     init_vector = generateAESInput(nonce_int, counter)
-    with open('ciphered.bin', 'w') as file:
-        # Fails sāksies ar init vektoru
-        file.write(init_vector)
-
-
-    # TODO: Iterēt caur faila bitiem
-    # TODO: Beigās XORot datus ar iegūto
+    # TODO: Iegūt paplašināto atslēgu
+    with open('cipheredCTRAES.bin', 'wb') as ciphered_file:
+        # Šifrētais fails sāksies ar init vektoru
+        ciphered_file.write(init_vector.to_bytes(16))
+        with open(file_name, 'br') as input_file:
+            while True:
+                input_chunk = input_file.read(16)
+                if not input_chunk:
+                    break
+                # TODO: Implementēt AES izsaukumu
+                # TODO: Beigās XORot datus ar iegūto
     print("Nav implementēts")
