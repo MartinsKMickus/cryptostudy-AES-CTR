@@ -64,7 +64,7 @@ def mixColumns(state):
                 multiply(mixColumnMatrix[j][2], state[2][i]) ^
                 multiply(mixColumnMatrix[j][3], state[3][i])
             )
-    resultState = rowColumnSwitch(state)
+    resultState = rowColumnSwitch(resultState)
     return resultState
 
 def multiply(a, b):
