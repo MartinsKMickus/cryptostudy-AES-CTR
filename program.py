@@ -24,6 +24,9 @@ s_box = [
     [0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16]
 ]
 
+def rowColumnSwitch(state):
+    return [[row[i] for row in state] for i in range(len(state[0]))]
+
 def subBytes(state):
     for i in range(4):
         for j in range(4):
@@ -33,15 +36,15 @@ def subBytes(state):
             state[i][j] = s_box[x][y]
     
 def shiftRows(state):
-    state = [[row[i] for row in state] for i in range(len(state[0]))]
+    state = rowColumnSwitch(state)
     for i in range(1, 4):  # Skip the first row
         state[i] = state[i][i:] + state[i][:i]
-    return [[row[i] for row in state] for i in range(len(state[0]))]
+    return rowColumnSwitch(state)
 
 
 
 def mixColumns(state):
-    state = [[row[i] for row in state] for i in range(len(state[0]))]
+    state = rowColumnSwitch(state)
     # MixColumn matrix
     mixColumnMatrix = [
         [0x02, 0x03, 0x01, 0x01],
@@ -61,7 +64,7 @@ def mixColumns(state):
                 multiply(mixColumnMatrix[j][2], state[2][i]) ^
                 multiply(mixColumnMatrix[j][3], state[3][i])
             )
-    resultState = [[row[i] for row in resultState] for i in range(len(resultState[0]))]
+    resultState = rowColumnSwitch(state)
     return resultState
 
 def multiply(a, b):
