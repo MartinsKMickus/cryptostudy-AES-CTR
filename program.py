@@ -342,11 +342,17 @@ def check_key(key):
     return key
 
 
+def check_nonce(nonce):
+    if len(nonce) != 4 or not all(c in '0123456789abcdefABCDEF' for c in nonce):
+        raise argparse.ArgumentTypeError('Nonce must be 4 hexadecimal characters long')
+    return nonce
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('file', type=str, help='File to encrypt/decrypt')
 parser.add_argument('-m', '--mode', required=True, type=str, help='Mode to use (encrypt/decrypt)')
 parser.add_argument('-k', '--key', required=True, type=check_key, help='Key to use for encryption/decryption (32 hex characters)')
-parser.add_argument('-n', '--nonce', required=False, type=str, help='Nonce to use for encryption/decryption')
+parser.add_argument('-n', '--nonce', required=False, type=check_nonce, help='Nonce to use for encryption/decryption (4 hex characters)')
 args = parser.parse_args()
 
 if args.mode == 'encrypt':
