@@ -317,7 +317,7 @@ def decryptAESCTR(file_name, key: str):
         file_name_without_extension = os.path.splitext(os.path.basename(file_name))[0]
         if not os.path.exists('decrypted'):
             os.makedirs('decrypted')
-        with open(f'decrypted/{file_name_without_extension}', 'bw') as output_file:
+        with open(f'decrypted/{file_name_without_extension}.docx', 'bw') as output_file:
             while True:
                 init_vector = generateAESInput(nonce_int, counter)
                 input_chunk = ciphered_file.read(16)
