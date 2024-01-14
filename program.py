@@ -59,9 +59,12 @@ def subBytes(state):
 
             state[i][j] = inv_s_box[x][y] """
     
-def shiftRows(state): 
-    for i, row in enumerate(state):
-            state[i] = row[i:] + row[:i]
+def shiftRows(state):
+    state = [[row[i] for row in state] for i in range(len(state[0]))]
+    for i in range(1, 4):  # Skip the first row
+        state[i] = state[i][i:] + state[i][:i]
+    return [[row[i] for row in state] for i in range(len(state[0]))]
+
 
     
 """ def invShiftRows(state):
@@ -70,45 +73,40 @@ def shiftRows(state):
 
 
 def mixColumns(state):
-    # matrica, ar kuru reizina
-    mix_matrix = [
-        [0x2, 0x3, 0x1, 0x1],
-        [0x1, 0x2, 0x3, 0x1],
-        [0x1, 0x1, 0x2, 0x3],
-        [0x3, 0x1, 0x1, 0x2]
+    state = [[row[i] for row in state] for i in range(len(state[0]))]
+    # MixColumn matrix
+    mixColumnMatrix = [
+        [0x02, 0x03, 0x01, 0x01],
+        [0x01, 0x02, 0x03, 0x01],
+        [0x01, 0x01, 0x02, 0x03],
+        [0x03, 0x01, 0x01, 0x02]
     ]
 
-    # funkcija, kas paņem state matricas rindu un Mix matricas kolonnu, izsauc reizināšanu
-    # un katram reizinājumam izpilda XOR
-    def gf_add_mul(a, b):
-        p = 0
-        for i in range(4):
-            p ^= gf_mul(a[i], b[i])
-        return p
+    # Initialize the result state matrix
+    resultState = [[0] * 4 for _ in range(4)]
 
-    # reizināšanas funkcija
-    def gf_mul(a, b):
-        p = 0
-        for _ in range(4):
-            if b & 1:
-                p ^= a  # ja b ir 1, rezultatam p izpilda XOR ar a
-            hi_bit_set = a & 0x8  # pārbaudīšanai, vai a ir jāizpilda XOR ar 0x3
-            a <<= 1  # ar logical shift left reizina ar 2
-            if hi_bit_set:
-                a ^= 0x3  # reizinātajam izpilda XOR
-            b >>= 1  # pēc darbībām b dala ar 2
-        return p & 0xF  # & nodrošina rezultātu 4 bitu robežās
-
-    # iziet cauri katrai kolonnai un rindai
-    mixed_state = [[0] * 4 for _ in range(4)]
-    for col in range(4):
-        for row in range(4):
-            mixed_state[row][col] = gf_add_mul(
-                [state[i][col] for i in range(4)],
-                [mix_matrix[row][i] for i in range(4)]
+    for i in range(4):  # Iterate over columns
+        for j in range(4):  # Iterate over rows
+            resultState[j][i] = (
+                multiply(mixColumnMatrix[j][0], state[0][i]) ^
+                multiply(mixColumnMatrix[j][1], state[1][i]) ^
+                multiply(mixColumnMatrix[j][2], state[2][i]) ^
+                multiply(mixColumnMatrix[j][3], state[3][i])
             )
+    resultState = [[row[i] for row in resultState] for i in range(len(resultState[0]))]
+    return resultState
 
-    return mixed_state
+def multiply(a, b):
+    # Multiplication in Galois Field (GF(2^8))
+    result = 0
+    while b:
+        if b & 1:
+            result ^= a
+        a <<= 1
+        if a & 0x100:
+            a ^= 0x11B  # The irreducible polynomial for AES
+        b >>= 1
+    return result
 
 
 # def invMixColumns(state):
@@ -165,7 +163,7 @@ def generate_rcon(round_number):
     rcon = 1
     for i in range(1, round_number + 1):
         rcon = (rcon << 1) ^ (0x11b if (rcon & 0x80) else 0)
-    return rcon.to_bytes(4, byteorder='big') # TODO: DEBUG IF LITTLE OR BIG
+    return rcon.to_bytes(4, byteorder='little') # TODO: DEBUG IF LITTLE OR BIG
 
 def xorBinaryList(list1, list2):
     result = []
@@ -174,7 +172,6 @@ def xorBinaryList(list1, list2):
     return result
 
 def keyExpansion(key: bytes):
-    i = 0
     # Apraksts 128-bitu gadījumā
     # key būs izmērā 128-biti jeb 32-baiti
     # expandedW būs izmērā 44 * 32-biti(4baiti) = 352baiti
@@ -185,6 +182,7 @@ def keyExpansion(key: bytes):
     for i in range(NB*(NR+1)*4):
         expandedK.append(0x00)
 
+    i = 0
     while(i<NK):
         # Simulēt word = 4 baitus
         expandedK[4*i] = key[4*i]
@@ -208,10 +206,15 @@ def keyExpansion(key: bytes):
         if (i % NK == 0):
             # temp = SubWord(RotWord(temp)) xor Rcon[i/Nk]
             rotWordInplace(temp)
+            # print(f'Rot {i}: {bytesToHexString(temp)}')
             subWord(temp)
+            # print(f'Sub {i}: {bytesToHexString(temp)}')
+            rcon = generate_rcon(int(i/NK)-1)
+            # print(f'I/NK = {int(i/NK)-1}')
+            # print(f'Rcon {i}: {bytesToHexString(rcon)}')
             # print(temp)
             # print(generate_rcon(int(i/NK)))
-            temp = xorBinaryList(temp, generate_rcon(int(i/NK)))
+            temp = xorBinaryList(temp, rcon)
         elif (NK > 6) and (i % NK == 4):
             subWord(temp)
         # Simulēt word = 4 baitus
@@ -234,34 +237,43 @@ def cipherAES(input: bytes, expandedK: bytes):
     # TODO: HARDCODED FOR 128-bit mode
     roundKey = [
         [expandedK[0], expandedK[1], expandedK[2], expandedK[3]],
-        [expandedK[4], expandedK[5], expandedK[6], expandedK[3]],
+        [expandedK[4], expandedK[5], expandedK[6], expandedK[7]],
         [expandedK[8], expandedK[9], expandedK[10], expandedK[11]],
         [expandedK[12], expandedK[13], expandedK[14], expandedK[15]]
     ]
     addRoundKey(state, roundKey)
-    for round in range(NR):
+    for round in range(NR-1):
+        # print(f'Start({round+1}): ', bytesToHexString(state[0] + state[1] + state[2] + state[3], mode=1))
         subBytes(state)
-        shiftRows(state)
+        # print(f'Sub_b({round+1}): ', bytesToHexString(state[0] + state[1] + state[2] + state[3], mode=1))
+        state = shiftRows(state)
+        # print(f'Sft_r({round+1}): ', bytesToHexString(state[0] + state[1] + state[2] + state[3], mode=1))
         state = mixColumns(state)
+        # print(f'Mix_c({round+1}): ', bytesToHexString(state[0] + state[1] + state[2] + state[3], mode=1))
         # TODO: HARDCODED FOR 128-bit mode
-        expKIndex = round*NB*4
+        expKIndex = (round+1)*NB*4
         roundKey = [
             [expandedK[expKIndex], expandedK[expKIndex+1], expandedK[expKIndex+2], expandedK[expKIndex+3]],
-            [expandedK[expKIndex+4], expandedK[expKIndex+5], expandedK[expKIndex+6], expandedK[expKIndex+3]],
+            [expandedK[expKIndex+4], expandedK[expKIndex+5], expandedK[expKIndex+6], expandedK[expKIndex+7]],
             [expandedK[expKIndex+8], expandedK[expKIndex+9], expandedK[expKIndex+10], expandedK[expKIndex+11]],
             [expandedK[expKIndex+12], expandedK[expKIndex+13], expandedK[expKIndex+14], expandedK[expKIndex+15]]
         ]
+        # print(f'K-sch({round+1}): ', bytesToHexString(roundKey[0] + roundKey[1] + roundKey[2] + roundKey[3], mode=1))
         addRoundKey(state, roundKey)
+        
     subBytes(state)
-    shiftRows(state)
+    # print(f'Sub_b({10}): ', bytesToHexString(state[0] + state[1] + state[2] + state[3], mode=1))
+    state = shiftRows(state)
+    # print(f'Sft_r({10}): ', bytesToHexString(state[0] + state[1] + state[2] + state[3], mode=1))
     # TODO: HARDCODED FOR 128-bit mode
-    expKIndex = NR*NB
+    expKIndex = NR*NB*4
     roundKey = [
             [expandedK[expKIndex], expandedK[expKIndex+1], expandedK[expKIndex+2], expandedK[expKIndex+3]],
-            [expandedK[expKIndex+4], expandedK[expKIndex+5], expandedK[expKIndex+6], expandedK[expKIndex+3]],
+            [expandedK[expKIndex+4], expandedK[expKIndex+5], expandedK[expKIndex+6], expandedK[expKIndex+7]],
             [expandedK[expKIndex+8], expandedK[expKIndex+9], expandedK[expKIndex+10], expandedK[expKIndex+11]],
             [expandedK[expKIndex+12], expandedK[expKIndex+13], expandedK[expKIndex+14], expandedK[expKIndex+15]]
         ]
+    # print(f'K-sch({10}): ', bytesToHexString(roundKey[0] + roundKey[1] + roundKey[2] + roundKey[3], mode=1))
     addRoundKey(state, roundKey)
     return state
 
@@ -331,7 +343,28 @@ def decryptAESCTR(file_name, key: str):
                 output_file.write(result)
                 counter += 1
 
+def bytesToHexString(variable, mode=0):
+    # return ''.join(['{:02x}'.format(value) + ('\n' if (i + 1) % 4 == 0 else '') for i, value in enumerate(variable)])
+    if mode ==0:
+        return ''.join(['{:02x}'.format(value) for value in variable])
+    else:
+        return ''.join(['{:02x}'.format(value) + (' ' if (i + 1) % 4 == 0 else '') for i, value in enumerate(variable)])
 
+def testAES():
+    key_bytes = bytes.fromhex('000102030405060708090a0b0c0d0e0f')
+    input_bytes = bytes.fromhex('00112233445566778899aabbccddeeff')
+    expandedK = keyExpansion(key_bytes)
+    # print('Result: ', bytesToHexString(expandedK))
+    # return
+
+    block_res = cipherAES(input_bytes, expandedK)
+    block_res = block_res[0] + block_res[1] + block_res[2] + block_res[3]
+    block_res = bytes(block_res)
+    # input_bytes = hex(input_bytes)
+    bytesToHexString(key_bytes)
+    print('Plaintext: ',bytesToHexString(input_bytes))
+    print('Key: ', bytesToHexString(key_bytes))
+    print('Result: ', bytesToHexString(block_res))
 # Piemēri:
 # encryptAESCTR('MyFyle.docx', '0123456789ABCDEF0123456789ABCDEF', 'ABCD')
 # decryptAESCTR('encrypted/MyFile', '0123456789ABCDEF0123456789ABCDEF')
@@ -359,3 +392,5 @@ if args.mode == 'encrypt':
     encryptAESCTR(args.file, args.key, args.nonce)
 elif args.mode == 'decrypt':
     decryptAESCTR(args.file, args.key)
+
+# testAES()
