@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import argparse
 
 NK = 4
@@ -68,20 +67,17 @@ def shiftRows(state):
 """ def invShiftRows(state):
     for i, row in enumerate(state):
         state[i] = row[-i:] + row[:-i] """
-    
+
+
 def mixColumns(state):
     # matrica, ar kuru reizina
     mix_matrix = [
-    [0x2, 0x3, 0x1, 0x1],
-    [0x1, 0x2, 0x3, 0x1],
-    [0x1, 0x1, 0x2, 0x3],
-    [0x3, 0x1, 0x1, 0x2]
+        [0x2, 0x3, 0x1, 0x1],
+        [0x1, 0x2, 0x3, 0x1],
+        [0x1, 0x1, 0x2, 0x3],
+        [0x3, 0x1, 0x1, 0x2]
     ]
-    # TODO: Noņemt NumPy bibliotēku
-    state = np.array(state)
-    mix_matrix = np.array(mix_matrix)
-    mixed_state = np.zeros_like(state, dtype=int)
-    
+
     # funkcija, kas paņem state matricas rindu un Mix matricas kolonnu, izsauc reizināšanu
     # un katram reizinājumam izpilda XOR
     def gf_add_mul(a, b):
@@ -89,27 +85,31 @@ def mixColumns(state):
         for i in range(4):
             p ^= gf_mul(a[i], b[i])
         return p
-    
+
     # reizināšanas funkcija
     def gf_mul(a, b):
         p = 0
         for _ in range(4):
             if b & 1:
-                p ^= a # ja b ir 1, rezultatam p izpilda XOR ar a
-            hi_bit_set = a & 0x8 # pārbaudīšanai, vai a ir jāizpilda XOR ar 0x3 
-            a <<= 1 # ar logical shift left reizina ar 2
+                p ^= a  # ja b ir 1, rezultatam p izpilda XOR ar a
+            hi_bit_set = a & 0x8  # pārbaudīšanai, vai a ir jāizpilda XOR ar 0x3
+            a <<= 1  # ar logical shift left reizina ar 2
             if hi_bit_set:
-                a ^= 0x3 #reizinātajam izpilda XOR
-            b >>= 1 # pēc darbībām b dala ar 2
-        return p & 0xF # & nodrošina rezultātu 4 bitu robežās
-    
-    #iziet cauri katrai kolonnai un rindai 
+                a ^= 0x3  # reizinātajam izpilda XOR
+            b >>= 1  # pēc darbībām b dala ar 2
+        return p & 0xF  # & nodrošina rezultātu 4 bitu robežās
+
+    # iziet cauri katrai kolonnai un rindai
+    mixed_state = [[0] * 4 for _ in range(4)]
     for col in range(4):
         for row in range(4):
-            mixed_state[row][col] = gf_add_mul(state[:, col], mix_matrix[row, :])
-    
+            mixed_state[row][col] = gf_add_mul(
+                [state[i][col] for i in range(4)],
+                [mix_matrix[row][i] for i in range(4)]
+            )
+
     # print(mixed_state.tolist())
-    return mixed_state.tolist()
+    return mixed_state
 
 # def invMixColumns(state):
 #     inv_mix_matrix = [
@@ -334,7 +334,6 @@ def decryptAESCTR(file_name, key: str):
 # Piemēri:
 # encryptAESCTR('MyFyle.docx', '0123456789ABCDEF0123456789ABCDEF', 'ABCD')
 # decryptAESCTR('encrypted/MyFile', '0123456789ABCDEF0123456789ABCDEF')
-
 
 def check_key(key):
     if len(key) != 32 or not all(c in '0123456789abcdefABCDEF' for c in key):
