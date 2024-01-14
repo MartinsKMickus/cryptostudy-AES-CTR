@@ -2,15 +2,6 @@ import os
 import numpy as np
 import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument('file', type=str, help='File to encrypt/decrypt')
-parser.add_argument('-m', '--mode', required=True, type=str, help='Mode to use (encrypt/decrypt)')
-parser.add_argument('-k', '--key', required=True, type=str, help='Key to use for encryption/decryption')
-parser.add_argument('-n', '--nonce', required=False, type=str, help='Nonce to use for encryption/decryption')
-
-args = parser.parse_args()
-args = vars(args)
-
 NK = 4
 NB = 4
 NR = 10
@@ -344,9 +335,27 @@ def decryptAESCTR(file_name, key: str):
 # encryptAESCTR('MyFyle.docx', '0123456789ABCDEF0123456789ABCDEF', 'ABCD')
 # decryptAESCTR('encrypted/MyFile', '0123456789ABCDEF0123456789ABCDEF')
 
-if args['mode'] == 'encrypt':
-    encryptAESCTR(args['file'], args['key'], args['nonce'])
-elif args['mode'] == 'decrypt':
-    decryptAESCTR(args['file'], args['key'])
-else:
-    raise ValueError('Invalid mode selected')
+
+def check_key(key):
+    if len(key) != 32 or not all(c in '0123456789abcdefABCDEF' for c in key):
+        raise argparse.ArgumentTypeError('Key must be 32 hexadecimal characters long')
+    return key
+
+
+def check_nonce(nonce):
+    if len(nonce) != 4 or not all(c in '0123456789abcdefABCDEF' for c in nonce):
+        raise argparse.ArgumentTypeError('Nonce must be 4 hexadecimal characters long')
+    return nonce
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('file', type=str, help='File to encrypt/decrypt')
+parser.add_argument('-m', '--mode', required=True, type=str, help='Mode to use (encrypt/decrypt)')
+parser.add_argument('-k', '--key', required=True, type=check_key, help='Key to use for encryption/decryption (32 hex characters)')
+parser.add_argument('-n', '--nonce', required=False, type=check_nonce, help='Nonce to use for encryption/decryption (4 hex characters)')
+args = parser.parse_args()
+
+if args.mode == 'encrypt':
+    encryptAESCTR(args.file, args.key, args.nonce)
+elif args.mode == 'decrypt':
+    decryptAESCTR(args.file, args.key)
