@@ -32,14 +32,6 @@ def subBytes(state):
 
             state[i][j] = s_box[x][y]
     
-""" def invSubBytes(state):
-    for i in range(4):
-        for j in range(4):
-            x = (state[i][j] >> 4) & 0xF
-            y = state[i][j] & 0xF
-
-            state[i][j] = inv_s_box[x][y] """
-    
 def shiftRows(state):
     state = [[row[i] for row in state] for i in range(len(state[0]))]
     for i in range(1, 4):  # Skip the first row
@@ -83,43 +75,6 @@ def multiply(a, b):
             a ^= 0x11B  # The irreducible polynomial for AES
         b >>= 1
     return result
-
-
-# def invMixColumns(state):
-#     inv_mix_matrix = [
-#         [0xE, 0xB, 0xD, 0x9],
-#         [0x9, 0xE, 0xB, 0xD],
-#         [0xD, 0x9, 0xE, 0xB],
-#         [0xB, 0xD, 0x9, 0xE]
-#     ]
-#
-#     def gf_add_mul(a, b):
-#         p = 0
-#         for i in range(4):
-#             p ^= gf_mul(a[i], b[i])
-#         return p
-#
-#     def gf_mul(a, b):
-#         p = 0
-#         for _ in range(4):
-#             if b & 1:
-#                 p ^= a
-#             hi_bit_set = a & 0x8
-#             a <<= 1
-#             if hi_bit_set:
-#                 a ^= 0x3
-#             b >>= 1
-#         return p & 0xF
-#
-#     mixed_state = [[0] * 4 for _ in range(4)]
-#     for col in range(4):
-#         for row in range(4):
-#             mixed_state[row][col] = gf_add_mul(
-#                 [state[i][col] for i in range(4)],
-#                 [inv_mix_matrix[row][i] for i in range(4)]
-#             )
-#
-#     return mixed_state
     
 def addRoundKey(state, roundKey):
     for i in range(4):
@@ -220,12 +175,7 @@ def cipherAES(input: bytes, expandedK: bytes):
     # TODO: HARDCODED FOR 128-bit mode
     state = matrix(input)
     # TODO: HARDCODED FOR 128-bit mode
-    roundKey = [
-        [expandedK[0], expandedK[1], expandedK[2], expandedK[3]],
-        [expandedK[4], expandedK[5], expandedK[6], expandedK[7]],
-        [expandedK[8], expandedK[9], expandedK[10], expandedK[11]],
-        [expandedK[12], expandedK[13], expandedK[14], expandedK[15]]
-    ]
+    roundKey = matrix(expandedK)
     addRoundKey(state, roundKey)
     for round in range(NR-1):
         # print(f'Start({round+1}): ', bytesToHexString(state[0] + state[1] + state[2] + state[3], mode=1))
@@ -237,12 +187,7 @@ def cipherAES(input: bytes, expandedK: bytes):
         # print(f'Mix_c({round+1}): ', bytesToHexString(state[0] + state[1] + state[2] + state[3], mode=1))
         # TODO: HARDCODED FOR 128-bit mode
         expKIndex = (round+1)*NB*4
-        roundKey = [
-            [expandedK[expKIndex], expandedK[expKIndex+1], expandedK[expKIndex+2], expandedK[expKIndex+3]],
-            [expandedK[expKIndex+4], expandedK[expKIndex+5], expandedK[expKIndex+6], expandedK[expKIndex+7]],
-            [expandedK[expKIndex+8], expandedK[expKIndex+9], expandedK[expKIndex+10], expandedK[expKIndex+11]],
-            [expandedK[expKIndex+12], expandedK[expKIndex+13], expandedK[expKIndex+14], expandedK[expKIndex+15]]
-        ]
+        roundKey = roundKeyFunc(expandedK, expKIndex)
         # print(f'K-sch({round+1}): ', bytesToHexString(roundKey[0] + roundKey[1] + roundKey[2] + roundKey[3], mode=1))
         addRoundKey(state, roundKey)
         
@@ -252,12 +197,7 @@ def cipherAES(input: bytes, expandedK: bytes):
     # print(f'Sft_r({10}): ', bytesToHexString(state[0] + state[1] + state[2] + state[3], mode=1))
     # TODO: HARDCODED FOR 128-bit mode
     expKIndex = NR*NB*4
-    roundKey = [
-            [expandedK[expKIndex], expandedK[expKIndex+1], expandedK[expKIndex+2], expandedK[expKIndex+3]],
-            [expandedK[expKIndex+4], expandedK[expKIndex+5], expandedK[expKIndex+6], expandedK[expKIndex+7]],
-            [expandedK[expKIndex+8], expandedK[expKIndex+9], expandedK[expKIndex+10], expandedK[expKIndex+11]],
-            [expandedK[expKIndex+12], expandedK[expKIndex+13], expandedK[expKIndex+14], expandedK[expKIndex+15]]
-        ]
+    roundKey = roundKeyFunc(expandedK, expKIndex)
     # print(f'K-sch({10}): ', bytesToHexString(roundKey[0] + roundKey[1] + roundKey[2] + roundKey[3], mode=1))
     addRoundKey(state, roundKey)
     return state
