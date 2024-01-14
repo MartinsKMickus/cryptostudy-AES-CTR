@@ -108,26 +108,23 @@ def mixColumns(state):
                 [mix_matrix[row][i] for i in range(4)]
             )
 
-    # print(mixed_state.tolist())
     return mixed_state
+
 
 # def invMixColumns(state):
 #     inv_mix_matrix = [
-#     [0xE, 0xB, 0xD, 0x9],
-#     [0x9, 0xE, 0xB, 0xD],
-#     [0xD, 0x9, 0xE, 0xB],
-#     [0xB, 0xD, 0x9, 0xE]
-#     ] # inversajam MixColumns vienkārši izmanto citu matricu, ar kuru reizina
-#     state = np.array(state)
-#     inv_mix_matrix = np.array(inv_mix_matrix)
-#     mixed_state = np.zeros_like(state, dtype=int)
-
+#         [0xE, 0xB, 0xD, 0x9],
+#         [0x9, 0xE, 0xB, 0xD],
+#         [0xD, 0x9, 0xE, 0xB],
+#         [0xB, 0xD, 0x9, 0xE]
+#     ]
+#
 #     def gf_add_mul(a, b):
 #         p = 0
 #         for i in range(4):
 #             p ^= gf_mul(a[i], b[i])
 #         return p
-
+#
 #     def gf_mul(a, b):
 #         p = 0
 #         for _ in range(4):
@@ -139,11 +136,15 @@ def mixColumns(state):
 #                 a ^= 0x3
 #             b >>= 1
 #         return p & 0xF
-    
+#
+#     mixed_state = [[0] * 4 for _ in range(4)]
 #     for col in range(4):
 #         for row in range(4):
-#             mixed_state[row][col] = gf_add_mul(state[:, col], inv_mix_matrix[row, :])
-    
+#             mixed_state[row][col] = gf_add_mul(
+#                 [state[i][col] for i in range(4)],
+#                 [inv_mix_matrix[row][i] for i in range(4)]
+#             )
+#
 #     return mixed_state
     
 def addRoundKey(state, roundKey):
