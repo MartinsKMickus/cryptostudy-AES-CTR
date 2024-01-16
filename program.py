@@ -212,7 +212,7 @@ def generateAESInput(nonce, counter):
     # Convert the combined value to bytes (16 bytes for 128 bits) AIKOMENTĒTAIS
     return combined_value.to_bytes(16, byteorder='big') # TODO: DEBUG IF LITTLE OR BIG
 
-def encryptAESCTR(file_name, key: str, nonce: str):
+def encryptAESCTR(input_file_name:str, key: str, nonce: str):
     # Pārveido no string uz hex nonce
     nonce_bytes = bytes.fromhex(nonce)
     key_bytes = bytes.fromhex(key)
@@ -221,15 +221,30 @@ def encryptAESCTR(file_name, key: str, nonce: str):
     # Counter sākas ar 0
     counter = 0
     expandedK = keyExpansion(key_bytes)
-    file_name_without_extension = os.path.splitext(os.path.basename(file_name))[0]
+    file_name = os.path.splitext(os.path.basename(input_file_name))
+    file_name = file_name[0] + file_name[1]
     if not os.path.exists('encrypted'):
         os.makedirs('encrypted')
-    with open(f'encrypted/{file_name_without_extension}', 'wb') as ciphered_file:
+    with open(f'encrypted/encrypted', 'wb') as ciphered_file:
         # Šifrētais fails sāksies ar init vektoru
         init_vector = generateAESInput(nonce_int, counter)
         ciphered_file.write(init_vector)
-        with open(file_name, 'br') as input_file:
+        with open(input_file_name, 'br') as input_file:
+            # file_name = bytes(file_name)
+            file_name_bytes = file_name.encode("utf-8")
+            # TODO: Check file name length
+            # print(file_name_bytes)
+            # Nošifrē faila nosaukumu
+            for i in range(32):
+                counter += 1
+                chunk = file_name_bytes[i*16:i*16+16]
+                chunk += bytes(16 - len(chunk))
+                init_vector = generateAESInput(nonce_int, counter)
+                block_res = cipherAES(init_vector, expandedK)
+                result = bytes(xorBinaryList(chunk,block_res[0] + block_res[1] + block_res[2] + block_res[3]))
+                ciphered_file.write(result)
             while True:
+                counter += 1
                 input_chunk = input_file.read(16)
                 if not input_chunk:
                     break
@@ -240,9 +255,8 @@ def encryptAESCTR(file_name, key: str, nonce: str):
                 result = bytes(xorBinaryList(input_chunk,block_res[0] + block_res[1] + block_res[2] + block_res[3]))
                 # print(result)
                 ciphered_file.write(result)
-                counter += 1
 
-def decryptAESCTR(file_name, key: str):
+def decryptAESCTR(file_name: str, key: str):
     # Pārveido no string uz hex nonce
     # nonce_bytes = bytes.fromhex(nonce)
     key_bytes = bytes.fromhex(key)
@@ -252,13 +266,27 @@ def decryptAESCTR(file_name, key: str):
     with open(file_name, 'br') as ciphered_file:
         # Šifrētais fails sāksies ar init vektoru
         nonce = ciphered_file.read(16)[:2]
-        print(nonce)
+        # print(nonce)
         nonce_int = int.from_bytes(nonce, byteorder='big')
-        file_name_without_extension = os.path.splitext(os.path.basename(file_name))[0]
+        # file_name_without_extension = os.path.splitext(os.path.basename(file_name))[0]
         if not os.path.exists('decrypted'):
             os.makedirs('decrypted')
-        with open(f'decrypted/{file_name_without_extension}.docx', 'bw') as output_file:
+        decrypted_name = []
+        # Atkodēt oriģinālā faila nosaukumu
+        for _ in range(32):
+            counter += 1
+            chunk = ciphered_file.read(16)
+            # chunk += bytes(16 - len(chunk))
+            init_vector = generateAESInput(nonce_int, counter)
+            block_res = cipherAES(init_vector, expandedK)
+            result = bytes(xorBinaryList(chunk,block_res[0] + block_res[1] + block_res[2] + block_res[3]))
+            decrypted_name += result
+        decrypted_name = [value for value in decrypted_name if value != 0]
+        # print(decrypted_name)
+        decrypted_name = bytes(decrypted_name).decode("utf-8")
+        with open(f'decrypted/{decrypted_name}', 'bw') as output_file:
             while True:
+                counter += 1
                 init_vector = generateAESInput(nonce_int, counter)
                 input_chunk = ciphered_file.read(16)
                 if not input_chunk:
@@ -269,7 +297,6 @@ def decryptAESCTR(file_name, key: str):
                 result = bytes(xorBinaryList(input_chunk,block_res[0] + block_res[1] + block_res[2] + block_res[3]))
                 # print(result)
                 output_file.write(result)
-                counter += 1
 
 def bytesToHexString(variable, mode=0):
     # return ''.join(['{:02x}'.format(value) + ('\n' if (i + 1) % 4 == 0 else '') for i, value in enumerate(variable)])
